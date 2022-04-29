@@ -13,10 +13,4 @@ export class CreateTaskInput {
 
   @Field(() => TaskStatus)
   status: TaskStatus;
-
-  @Field()
-  createdAt: Date;
-
-  @Field()
-  updatedAt: Date;
 }
