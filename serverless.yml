@@ -1,0 +1,31 @@
+org: shinobushiva
+app: myapp
+service: compnestjs-typeorm-ts-example
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: ap-northeast-1
+  stage: dev
+
+functions:
+  handler:
+    handler: dist/handler.handler
+    events:
+      - http:
+          cors: true
+          path: "/"
+          method: any
+      - http:
+          cors: true
+          path: "{proxy+}"
+          method: any
+    environment:
+      DB_HOST: ${env:DB_HOST}
+      DB_PORT: ${env:DB_PORT}
+      DB_USERNAME: ${env:DB_USERNAME}
+      DB_PASSWORD: ${env:DB_PASSWORD}
+      DB_DATABASE: ${env:DB_DATABASE}
+plugins:
+  - serverless-offline
