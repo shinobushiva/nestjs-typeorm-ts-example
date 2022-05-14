@@ -2,7 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { create } from 'domain';
 import { async } from 'rxjs';
-import { ConnectionManager, getConnectionManager, getRepository, Repository } from 'typeorm';
+import {
+  ConnectionManager,
+  getConnectionManager,
+  getRepository,
+  Repository,
+} from 'typeorm';
 import { CreateTaskInput } from './dto/create-task.input';
 import { UpdateTaskInput } from './dto/update-task.input';
 import { Task } from './entities/task.entity';

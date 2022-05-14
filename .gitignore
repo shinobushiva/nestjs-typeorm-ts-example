@@ -39,3 +39,6 @@ lerna-debug.log*
 
 # schema.gql
 src/schema.gql
+
+# serverless
+.serverless/
