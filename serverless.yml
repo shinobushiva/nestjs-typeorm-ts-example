@@ -1,6 +1,6 @@
 org: shinobushiva
 app: myapp
-service: compnestjs-typeorm-ts-example
+service: nestjs-typeorm-ts-example
 frameworkVersion: '3'
 
 provider:
@@ -8,6 +8,169 @@ provider:
   runtime: nodejs14.x
   region: ap-northeast-1
   stage: dev
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - rds-data:*
+        - ec2:CreateNetworkInterface
+        - ec2:DescribeNetworkInterfaces
+        - ec2:DeleteNetworkInterface
+      Resource: "*"
+  vpc:
+    securityGroupIds:
+      - Ref: LambdaSecurityGroup
+    subnetIds:
+      - Ref: PrivateSubnetB
+      - Ref: PrivateSubnetC
+  environment:
+    DB_HOST: 
+      Fn::GetAtt: [DBInstance, Endpoint.Address]
+    # DB_HOST: ${env:DB_HOST}
+    DB_PORT: ${env:DB_PORT}
+    DB_USERNAME: ${env:DB_USERNAME}
+    DB_PASSWORD: ${env:DB_PASSWORD}
+    DB_DATABASE: ${env:DB_DATABASE}
+
+resources:
+  Resources:
+    ## VPC Resource
+    VPC:
+      Type: AWS::EC2::VPC
+      Properties:
+        CidrBlock: 10.0.0.0/24
+        Tags:
+          - { Key: Name, Value: nestjs-typeorm-ts-example VPC }
+    PrivateSubnetB:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref VPC
+        CidrBlock: 10.0.0.0/25
+        AvailabilityZone: ap-northeast-1b
+        Tags:
+          - { Key: Name, Value: nestjs-typeorm-ts-example Private B }
+    PrivateSubnetC:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref VPC
+        CidrBlock: 10.0.0.128/25
+        AvailabilityZone: ap-northeast-1c
+        Tags:
+          - { Key: Name, Value: nestjs-typeorm-ts-example Private C }
+    LambdaSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: SecurityGroup for Lambda Functions
+        VpcId: !Ref VPC
+        Tags:
+          - Key: "Name"
+            Value: "LambdaSecurityGroup"
+    RDSSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: SecurityGroup for RDS
+        VpcId: !Ref VPC
+        SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: ${env:DB_PORT}
+            ToPort: ${env:DB_PORT}
+            CidrIp: 10.0.0.0/24
+        Tags:
+          - Key: "Name"
+            Value: "RDSSecurityGroup"
+      DependsOn: VPC
+    ## RDS Resource
+    DBSubnetGroup:
+      Type: AWS::RDS::DBSubnetGroup
+      Properties:
+        DBSubnetGroupDescription: "nestjs-typeorm-ts-example DB subnet group"
+        DBSubnetGroupName: nestjs-typeorm-ts-example-db-subnet-group
+        SubnetIds:
+          - !Ref PrivateSubnetB
+          - !Ref PrivateSubnetC
+    DBInstance:
+      Type: AWS::RDS::DBInstance
+      DeletionPolicy: Snapshot
+      Properties:
+        AllocatedStorage: '5'
+        DBInstanceClass: db.t3.micro
+        DBParameterGroupName: !Ref DBParameterGroup
+        DBSubnetGroupName: !Ref DBSubnetGroup
+        Engine: MySQL
+        EngineVersion: 8.0.23
+        MasterUsername: ${env:DB_USERNAME}
+        MasterUserPassword: ${env:DB_PASSWORD}
+        StorageType: gp2
+        VPCSecurityGroups:
+          - !Ref RDSSecurityGroup
+    DBParameterGroup:
+      Type: AWS::RDS::DBParameterGroup
+      Properties:
+        Description: nestjs-typeorm-ts-example custom paramter group
+        Family: MySQL8.0
+        Parameters:
+          character_set_database: utf8mb4
+          character_set_client: utf8mb4
+          character_set_connection: utf8mb4
+          character_set_results: utf8mb4
+          character_set_server: utf8mb4
+    ## RDS Proxy
+    # ProxyRole:
+    #   Type: AWS::IAM::Role
+    #   Properties:
+    #     RoleName: nestjs-typeorm-ts-example-proxy-role
+    #     AssumeRolePolicyDocument:
+    #       Version: "2012-10-17"
+    #       Statement:
+    #         - Effect: Allow
+    #           Principal:
+    #             Service:
+    #               - "rds.amazonaws.com"
+    #           Action:
+    #             - "sts:AssumeRole"
+    #     Path: /
+    #     Policies:
+    #       - PolicyName: RdsProxyPolicy
+    #         PolicyDocument:
+    #           Version: "2012-10-17"
+    #           Statement:
+    #             - Effect: Allow
+    #               Action:
+    #                 - "secretsmanager:GetResourcePolicy"
+    #                 - "secretsmanager:GetSecretValue"
+    #                 - "secretsmanager:DescribeSecret"
+    #                 - "secretsmanager:ListSecretVersionIds"
+    #               # Resource:
+    #               #   - !Ref AuroraSecret
+    #             - Effect: Allow
+    #               Action:
+    #                 - "kms:Decrypt"
+    #               Resource: "arn:aws:kms:${self:provider.region}:#{AWS::AccountId}:key/*"
+    #               # Condition:
+    #               #   StringEquals:
+    #               #     kms:ViaService: "secretsmanager.${self:provider.region}.amazonaws.com"
+      # DependsOn: AuroraSecret
+    # RDSProxy:
+    #   Type: AWS::RDS::DBProxy
+    #   Properties:
+    #     DBProxyName: nestjs-typeorm-ts-example-proxy
+    #     Auth:
+    #       - SecretArn: !Ref AuroraSecret
+    #     VpcSecurityGroupIds:
+    #       - !Ref RDSSecurityGroup
+    #     VpcSubnetIds:
+    #       - !Ref PrivateSubnetB
+    #       - !Ref PrivateSubnetC
+    #     EngineFamily: MySQL
+    #     RoleArn: !GetAtt ProxyRole.Arn
+    #   # DependsOn: AuroraSecret
+    # DBProxyTargetGroup:
+    #   Type: AWS::RDS::DBProxyTargetGroup
+    #   Properties:
+    #     TargetGroupName: default
+    #     DBProxyName: !Ref RDSProxy
+    #     # DBClusterIdentifiers:
+    #     #   - !Ref DBCluster
+    #   # DependsOn: RDSProxy
 
 functions:
   handler:
@@ -21,11 +184,24 @@ functions:
           cors: true
           path: "{proxy+}"
           method: any
-    environment:
-      DB_HOST: ${env:DB_HOST}
-      DB_PORT: ${env:DB_PORT}
-      DB_USERNAME: ${env:DB_USERNAME}
-      DB_PASSWORD: ${env:DB_PASSWORD}
-      DB_DATABASE: ${env:DB_DATABASE}
+  createDatabase:
+    handler: dist/handler.createDatabase
+    events:
+      - http:
+          path: create-database
+          method: get
+  migrationUp:
+    handler: dist/database.migrationUp
+    events:
+      - http:
+          path: migration-up
+          method: get
+  migrationDown:
+    handler: dist/database.migrationDown
+    events:
+      - http:
+          path: migration-down
+          method: get
+
 plugins:
   - serverless-offline
