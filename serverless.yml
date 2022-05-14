@@ -25,6 +25,7 @@ provider:
   environment:
     DB_HOST: 
       Fn::GetAtt: [DBInstance, Endpoint.Address]
+    # DB_HOST: ${env:DB_HOST}
     DB_PORT: ${env:DB_PORT}
     DB_USERNAME: ${env:DB_USERNAME}
     DB_PASSWORD: ${env:DB_PASSWORD}
@@ -183,25 +184,24 @@ functions:
           cors: true
           path: "{proxy+}"
           method: any
-    # environment:
-    #   DB_HOST: ${env:DB_HOST}
-    #   DB_PORT: ${env:DB_PORT}
-    #   DB_USERNAME: ${env:DB_USERNAME}
-    #   DB_PASSWORD: ${env:DB_PASSWORD}
-    #   DB_DATABASE: ${env:DB_DATABASE}
   createDatabase:
     handler: dist/handler.createDatabase
     events:
       - http:
           path: create-database
           method: get
-    environment:
-      # DB_HOST: 
-      #   Fn::GetAtt: [DBInstance, Endpoint.Address]
-      # DB_PORT: ${env:DB_PORT}
-      # DB_USERNAME: ${env:DB_USERNAME}
-      # DB_PASSWORD: ${env:DB_PASSWORD}
-      # DB_DATABASE: ${env:DB_DATABASE}
+  migrationUp:
+    handler: dist/database.migrationUp
+    events:
+      - http:
+          path: migration-up
+          method: get
+  migrationDown:
+    handler: dist/database.migrationDown
+    events:
+      - http:
+          path: migration-down
+          method: get
 
 plugins:
   - serverless-offline
