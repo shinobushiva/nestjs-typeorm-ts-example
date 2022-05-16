@@ -1,0 +1,5 @@
+DB_HOST: Fn::GetAtt: [DBInstance, Endpoint.Address]
+DB_PORT: ${env:DB_PORT}
+DB_USERNAME: ${env:DB_USERNAME}
+DB_PASSWORD: ${env:DB_PASSWORD}
+DB_DATABASE: ${env:DB_DATABASE}

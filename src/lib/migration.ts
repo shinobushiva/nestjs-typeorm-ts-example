@@ -1,4 +1,10 @@
-import { createConnection, Connection, ConnectionOptions } from 'typeorm';
+import {
+  Connection,
+  ConnectionOptions,
+  ConnectionManager,
+  getConnectionManager,
+} from 'typeorm';
+import ormconfig from 'src/config/ormconfig';
 
 interface MigrationIndexSignature {
   [key: string]: any;
@@ -16,7 +22,19 @@ export default class Migration implements MigrationIndexSignature {
 
   private async init() {
     try {
-      this.connection = await createConnection(this.config);
+      const connectionManager: ConnectionManager = getConnectionManager();
+
+      try {
+        if (connectionManager.has(ormconfig.name)) {
+          this.connection = connectionManager.get(ormconfig.name);
+        }
+      } catch (err) {}
+      if (!this.connection) {
+        this.connection = connectionManager.create(this.config);
+      }
+      if (!this.connection.isInitialized) {
+        await this.connection.initialize();
+      }
     } catch (error) {
       throw error;
     }
