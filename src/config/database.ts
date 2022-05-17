@@ -9,14 +9,15 @@ export class TypeOrmConfigService implements TypeOrmOptionsFactory {
     const ormOptions: TypeOrmModuleOptions = {
       ...ormconfig,
       keepConnectionAlive: true,
-      autoLoadEntities: true,
+      autoLoadEntities: false,
     };
 
     const connectionManager: ConnectionManager = getConnectionManager();
     let options: any;
 
-    if (connectionManager.has('default')) {
-      options = connectionManager.get('default').options;
+    const connectionName = ormconfig.name;
+    if (connectionManager.has(connectionName)) {
+      options = connectionManager.get(connectionName).options;
     } else {
       options = ormOptions as TypeOrmModuleOptions;
     }

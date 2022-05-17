@@ -42,3 +42,6 @@ src/schema.gql
 
 # serverless
 .serverless/
+
+# docker
+docker.env

@@ -3,11 +3,18 @@ app: myapp
 service: nestjs-typeorm-ts-example
 frameworkVersion: '3'
 
+custom:
+  environment:
+    local: ./serverless/environment.local.yml
+    local-docker: ./serverless/environment.local-docker.yml
+    dev: ./serverless/environment.dev.yml
+    prod: ./serverless/environment.prod.yml
+
 provider:
   name: aws
   runtime: nodejs14.x
   region: ap-northeast-1
-  stage: dev
+  stage: ${opt:stage, 'local'}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -22,14 +29,7 @@ provider:
     subnetIds:
       - Ref: PrivateSubnetB
       - Ref: PrivateSubnetC
-  environment:
-    DB_HOST: 
-      Fn::GetAtt: [DBInstance, Endpoint.Address]
-    # DB_HOST: ${env:DB_HOST}
-    DB_PORT: ${env:DB_PORT}
-    DB_USERNAME: ${env:DB_USERNAME}
-    DB_PASSWORD: ${env:DB_PASSWORD}
-    DB_DATABASE: ${env:DB_DATABASE}
+  environment: ${file(${self:custom.environment.${self:provider.stage}})}
 
 resources:
   Resources:

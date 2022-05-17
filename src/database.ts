@@ -11,7 +11,6 @@ const handler =
   (handlerName: string) =>
   async (event: any, context: Context, callback: Callback) => {
     context.callbackWaitsForEmptyEventLoop = false;
-
     const migration = new Migration(ormconfig);
 
     try {
